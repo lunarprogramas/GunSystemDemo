@@ -20,6 +20,24 @@ public = {
 	Threads = {},
 }
 
+local limbMap = {
+	Head = 3,
+	UpperTorso = 3,
+	LowerTorso = 2.5,
+	LeftUpperArm = 1.5,
+	LeftLowerArm = 1.5,
+	LeftHand = 1.5,
+	RightUpperArm = 1.5,
+	RightLowerArm = 1.5,
+	RightHand = 1.5,
+	LeftUpperLeg = 3,
+	LeftLowerLeg = 2.5,
+	LeftFoot = 2,
+	RightUpperLeg = 3,
+	RightLowerLeg = 2.5,
+	RightFoot = 2,
+}
+
 -- in an ideal world you would never use rcl :D
 -- and in an ideal word there are better practices and i dont declare myself as a god in programming this is just how I would approximately do if not a tad better on an actual project
 
@@ -101,6 +119,7 @@ function public:Init()
 			local model = gun
 			local maxammo = config.MaxAmmo
 			local firerate = config.FireRate
+			local reloadtime = config.ReloadTime
 
 			if firerate == 0 then
 				return warn("firerate cannot be 0 seconds otherwise you will brick everything - gun:", name)
@@ -115,6 +134,7 @@ function public:Init()
 					Model = model,
 					MaxAmmo = maxammo,
 					FireRate = firerate,
+					ReloadTime = reloadtime,
 				}
 			elseif guntype == "Secondary" then
 				public.Secondaries[name] = {
@@ -125,6 +145,7 @@ function public:Init()
 					Model = model,
 					MaxAmmo = maxammo,
 					FireRate = firerate,
+					ReloadTime = reloadtime,
 				}
 			else
 				warn("gun type ", guntype, " was not recognized")
@@ -154,104 +175,100 @@ function public:Init()
 
 				if ammo > 0 then
 					tool:SetAttribute("Ammo", ammo - 1)
-					bullet.Parent = tool
-					public.Debounces[bullet] = {}
-					bullet:SetPrimaryPartCFrame(tool.Muzzle.CFrame)
+					local mousePosition = GunFunction:InvokeClient(plr, "MouseLocation")
+					local cameraPosition = GunFunction:InvokeClient(plr, "CameraLocation")
+					local direction = (mousePosition - cameraPosition).Unit * 500 -- 500 studs range, adjust as needed
 
-					local tweenInfo = TweenInfo.new(gun.FireRate, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-					local cf = CFrame.new(origin)
+					local raycastParams = RaycastParams.new()
 
-					local tween = TweenService:Create(bullet.PrimaryPart, tweenInfo, { CFrame = cf })
+					local result = workspace:Raycast(cameraPosition, direction, raycastParams)
+
+					warn(result)
+
+					if result then
+						local hitPart = result.Instance
+						warn(hitPart)
+						if hitPart and hitPart.Parent:FindFirstChild("Humanoid") then
+							local player = Players:GetPlayerFromCharacter(hitPart.Parent)
+							local limbMultiplier = limbMap[hitPart]
+							if player ~= plr then
+								hitPart.Parent.Humanoid.Health -= math.floor(gun.Damage * limbMultiplier)
+							end
+						end
+					end
 
 					tool.Muzzle.Flash.Enabled = true
 					tool.Muzzle.Audio:Play()
-
-					bullet.Parent = workspace
-					tween:Play()
-
-					local bulletCore: Part = bullet.PrimaryPart
-
-					bulletCore.Touched:Connect(function(part)
-						if part.Parent:FindFirstChild("Humanoid") then
-							local player = Players:GetPlayerFromCharacter(part.Parent)
-							if not public.Debounces[bullet][player] then
-								public.Debounces[bullet][player] = true
-								local currentHealth = part.Parent:FindFirstChild("Humanoid").Health
-								part.Parent:FindFirstChild("Humanoid").Health = currentHealth - gun.Damage
-							end
-						end
-					end)
-
-					tween.Completed:Connect(function()
-						bullet:Destroy()
+					task.delay(0.4, function()
 						tool.Muzzle.Flash.Enabled = false
-						public.Debounces[bullet] = nil
 					end)
 				else
 					tool.Muzzle.GunEmpty:Play()
 				end
 			elseif gun.BurstType == "Automatic" then
-				local ammo = tool:GetAttribute("Ammo")
-
 				public.Threads[plr] = task.spawn(function()
 					while tool:GetAttribute("Ammo") > 0 do
+						local ammo = tool:GetAttribute("Ammo")
 						task.wait(gun.FireRate)
 
 						tool:SetAttribute("Ammo", ammo - 1)
-						bullet = bullet:Clone()
-						bullet.Parent = workspace
-						public.Debounces[bullet] = {}
-						bullet.CFrame = tool.Muzzle.CFrame
-						bullet:AddTag(("%s_Bullets"):format(plr.Name))
+						local mousePosition = GunFunction:InvokeClient(plr, "MouseLocation")
+						local cameraPosition = GunFunction:InvokeClient(plr, "CameraLocation")
+						local direction = (mousePosition - cameraPosition).Unit * 500 -- 500 studs range, adjust as needed
 
-						local tweenInfo = TweenInfo.new(gun.FireRate, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+						local raycastParams = RaycastParams.new()
 
-						local mouse = GunFunction:InvokeClient(plr, "MouseLocation")
+						local result = workspace:Raycast(cameraPosition, direction, raycastParams)
 
-						local cf = CFrame.new(mouse)
+						warn(result)
 
-						local tween = TweenService:Create(bullet, tweenInfo, { CFrame = cf })
+						if result then
+							local hitPart = result.Instance
+							warn(hitPart)
+							if hitPart and hitPart.Parent:FindFirstChild("Humanoid") then
+								local player = Players:GetPlayerFromCharacter(hitPart.Parent)
+								local limbMultiplier = limbMap[hitPart.Name] or 1
+								warn(hitPart, limbMultiplier)
+								if player ~= plr then
+									hitPart.Parent.Humanoid.Health -= math.floor(gun.Damage * limbMultiplier)
+								end
+							end
+						end
 
 						tool.Muzzle.Flash.Enabled = true
 						tool.Muzzle.Audio:Play()
-
-						tween:Play()
-
-						local bulletCore: Part = bullet
-
-						bulletCore.Touched:Connect(function(part)
-							if part.Parent:FindFirstChild("Humanoid") then
-								local player = Players:GetPlayerFromCharacter(part.Parent)
-								if not public.Debounces[bullet][player] then
-									public.Debounces[bullet][player] = true
-									local currentHealth = part.Parent:FindFirstChild("Humanoid").Health
-									part.Parent:FindFirstChild("Humanoid").Health = currentHealth - gun.Damage
-								end
-							end
-						end)
-
-						tween.Completed:Connect(function()
-							public.Debounces[bullet] = {}
-							bullet:Destroy()
+						task.delay(0.4, function()
 							tool.Muzzle.Flash.Enabled = false
 						end)
+					end
+
+					if tool:GetAttribute("Ammo") == 0 then
+						tool.Muzzle.GunEmpty:Play()
 					end
 				end)
 			end
 		elseif type == "Reload" then
+			warn(1)
 			local gun = getGunFromTable(tool)
 			tool:SetAttribute("Ammo", gun.MaxAmmo)
 		elseif type == "Stop" then
-            if public.Threads[plr] then
-                task.cancel(public.Threads[plr])
-                public.Threads[plr] = nil
-            end
+			if public.Threads[plr] then
+				task.cancel(public.Threads[plr])
+				public.Threads[plr] = nil
+			end
 
 			for _, bullet in CollectionService:GetTagged(("%s_Bullets"):format(plr.Name)) do
 				bullet:Destroy()
 			end
 		end
 	end)
+
+	GunFunction.OnServerInvoke = function(plr, request, ...)
+		local args = { ... }
+		if request == "GetGunDetails" then
+			return getGunFromTable(args[1])
+		end
+	end
 end
 
 function public:Start() end
