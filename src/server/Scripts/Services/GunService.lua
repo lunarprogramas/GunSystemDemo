@@ -193,8 +193,6 @@ function public:Init()
 			elseif gun.BurstType == "Automatic" then
 				local ammo = tool:GetAttribute("Ammo")
 
-				warn(1)
-
 				public.Threads[plr] = task.spawn(function()
 					while tool:GetAttribute("Ammo") > 0 do
 						task.wait(gun.FireRate)

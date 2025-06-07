@@ -18,7 +18,6 @@ function public:Init()
 
 	Players.LocalPlayer.CharacterAdded:Connect(function(character)
 		for _, tool: Tool in Players.LocalPlayer.Backpack:GetChildren() do
-			warn(tool)
 			if tool:HasTag("OwnedGun") then
 				tool.Equipped:Connect(function(mouse)
 					local animator: Animator = character.Humanoid.Animator
@@ -32,7 +31,6 @@ function public:Init()
 					end, false, Enum.KeyCode.R)
 
 					mouse.Button1Down:Connect(function()
-						warn(1)
 						fire:Play()
 						GunRemote:FireServer("Fire", mouse.Hit.Position, tool)
 					end)

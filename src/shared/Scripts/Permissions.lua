@@ -3,7 +3,6 @@
 local Permissions = {}
 
 function Permissions (Player, Permission)
-    warn(Permission)
     if typeof(Permission) == "string" then
         if string.find(Permission, "Gamepass") then
             local s = string.split(Permission, ":")
