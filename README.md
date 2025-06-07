@@ -7,6 +7,7 @@ Its a RCL gun system for the ROBLOX engine.
 > This is how you would setup the configuration files for the gun system I made.
 
 Settings in the tool:
+```lua
 return {
 	Animations = {
 		Equipt = "rbxassetid://129370008286067",
@@ -21,6 +22,9 @@ return {
 	MaxAmmo = 1000,
 	FireRate = 0.08
 }
+```
 
 Permissions in the tool:
+```lua
 return { "All" }
+```
