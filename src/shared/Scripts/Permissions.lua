@@ -25,7 +25,7 @@ function Permissions (Player, Permission)
                 local s = string.split(perm, ":")
                 return Player.UserId == tonumber(s[2])
             elseif string.find(perm, "Team") then
-                local s = string.split(Permission, ":")
+                local s = string.split(perm, ":")
                 return Player.Team.Name == s[2]
             elseif perm == "All" then
                 return true

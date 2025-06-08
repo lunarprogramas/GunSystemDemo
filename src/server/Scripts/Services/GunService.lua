@@ -180,17 +180,16 @@ function public:Init()
 					local direction = (mousePosition - cameraPosition).Unit * 500 -- 500 studs range, adjust as needed
 
 					local raycastParams = RaycastParams.new()
+					raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+					raycastParams.FilterDescendantsInstances = { tool, plr.Character }
 
 					local result = workspace:Raycast(cameraPosition, direction, raycastParams)
 
-					warn(result)
-
 					if result then
 						local hitPart = result.Instance
-						warn(hitPart)
 						if hitPart and hitPart.Parent:FindFirstChild("Humanoid") then
 							local player = Players:GetPlayerFromCharacter(hitPart.Parent)
-							local limbMultiplier = limbMap[hitPart]
+							local limbMultiplier = limbMap[hitPart] or 1
 							if player ~= plr then
 								hitPart.Parent.Humanoid.Health -= math.floor(gun.Damage * limbMultiplier)
 							end
@@ -198,6 +197,7 @@ function public:Init()
 					end
 
 					tool.Muzzle.Flash.Enabled = true
+					tool.Muzzle.LightEffect:Emit(1)
 					tool.Muzzle.Audio:Play()
 					task.delay(0.4, function()
 						tool.Muzzle.Flash.Enabled = false
@@ -217,18 +217,16 @@ function public:Init()
 						local direction = (mousePosition - cameraPosition).Unit * 500 -- 500 studs range, adjust as needed
 
 						local raycastParams = RaycastParams.new()
+						raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+						raycastParams.FilterDescendantsInstances = { tool, plr.Character }
 
 						local result = workspace:Raycast(cameraPosition, direction, raycastParams)
 
-						warn(result)
-
 						if result then
 							local hitPart = result.Instance
-							warn(hitPart)
 							if hitPart and hitPart.Parent:FindFirstChild("Humanoid") then
 								local player = Players:GetPlayerFromCharacter(hitPart.Parent)
 								local limbMultiplier = limbMap[hitPart.Name] or 1
-								warn(hitPart, limbMultiplier)
 								if player ~= plr then
 									hitPart.Parent.Humanoid.Health -= math.floor(gun.Damage * limbMultiplier)
 								end
@@ -236,6 +234,7 @@ function public:Init()
 						end
 
 						tool.Muzzle.Flash.Enabled = true
+						tool.Muzzle.LightEffect:Emit(1)
 						tool.Muzzle.Audio:Play()
 						task.delay(0.4, function()
 							tool.Muzzle.Flash.Enabled = false
@@ -248,7 +247,6 @@ function public:Init()
 				end)
 			end
 		elseif type == "Reload" then
-			warn(1)
 			local gun = getGunFromTable(tool)
 			tool:SetAttribute("Ammo", gun.MaxAmmo)
 		elseif type == "Stop" then

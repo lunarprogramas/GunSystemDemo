@@ -1,6 +1,7 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local public = {}
 
 local import = require(ReplicatedStorage.Shared.import)
@@ -10,10 +11,16 @@ local TweenUI = import("Shared/TweenUI")
 local GunRemote = Network.GetRemoteEvent("GunRE")
 local GunFunction: RemoteFunction = Network.GetRemoteFunction("GunRF")
 
-local con1, con2, con3, reloading, fire, equip, reload
+local reloading, fire, equip, reload, click
 local UI
+local light = false
+
+local connections = {}
+
+local initializedGuns = {}
 
 local cursor = "rbxassetid://16717300045"
+local clickSound = "rbxassetid://421058925"
 
 local function showAndSetupUi(tool: Tool)
 	local gunDetails = GunFunction:InvokeServer("GetGunDetails", tool)
@@ -51,8 +58,16 @@ local function updateUI(tool: Tool)
 end
 
 local function doReload(tool: Tool)
+	if reloading then
+		return
+	end
+
 	local gunDetails = GunFunction:InvokeServer("GetGunDetails", tool)
 	local sound = tool.Handle:FindFirstChild("Reload")
+
+	if tool:GetAttribute("Ammo") == gunDetails.MaxAmmo then
+		return
+	end
 
 	reloading = true
 	if sound then
@@ -79,6 +94,86 @@ local function setCursor(state: boolean)
 	end
 end
 
+local function setLight(tool: Tool)
+	if not click then
+		click = Instance.new("Sound", tool.Muzzle)
+		click.Name = "ClickSound"
+		click.SoundId = clickSound
+	end
+
+	click:Play()
+	light = not light
+	tool.Muzzle.Light.Enabled = light
+end
+
+local function initializeGuns(character)
+	for _, tool: Tool in Players.LocalPlayer.Backpack:GetChildren() do
+		if tool:HasTag("OwnedGun") then
+			if initializedGuns[tool] then
+				continue
+			end
+
+			tool.Equipped:Connect(function(mouse)
+				showAndSetupUi(tool)
+				setCursor(true)
+				local animator: Animator = character.Humanoid.Animator
+				fire = animator:LoadAnimation(tool.Animations.Fire)
+				equip = animator:LoadAnimation(tool.Animations.Equipt)
+				reload = animator:LoadAnimation(tool.Animations.Reload)
+
+				equip:Play()
+
+				equip.Stopped:Connect(function()
+					equip:AdjustSpeed(0)
+					equip:AdjustWeight(1)
+
+					connections["Inputs"] = UserInputService.InputBegan:Connect(function(input, gpe)
+						if not gpe and character:FindFirstChild(tool.Name) then
+							if input.KeyCode == Enum.KeyCode.F then
+								setLight(tool)
+								return
+							elseif input.KeyCode == Enum.KeyCode.R then
+								doReload(tool)
+							end
+						end
+					end)
+
+					connections["Fire"] = mouse.Button1Down:Connect(function()
+						if not reloading then
+							fire:Play()
+							GunRemote:FireServer("Fire", mouse.Hit.Position, tool)
+						end
+					end)
+
+					connections["Stop"] = mouse.Button1Up:Connect(function()
+						GunRemote:FireServer("Stop", nil, tool)
+					end)
+
+					connections["Ammo"] = tool:GetAttributeChangedSignal("Ammo"):Connect(function()
+						updateUI(tool)
+					end)
+				end)
+			end)
+
+			tool.Unequipped:Connect(function()
+				equip:AdjustSpeed(1)
+				equip:AdjustWeight(0)
+				hideUI()
+				setCursor(false)
+				ContextActionService:UnbindAction("Reload")
+				ContextActionService:UnbindAction("Light")
+				GunRemote:FireServer("Stop", nil, tool)
+
+				for _, conn in connections do
+					conn:Disconnect()
+				end
+			end)
+
+			initializedGuns[tool] = true
+		end
+	end
+end
+
 function public:Init()
 	GunFunction.OnClientInvoke = function(request)
 		if request == "MouseLocation" then
@@ -89,64 +184,16 @@ function public:Init()
 	end
 
 	Players.LocalPlayer.CharacterAdded:Connect(function(character)
-		for _, tool: Tool in Players.LocalPlayer.Backpack:GetChildren() do
-			if tool:HasTag("OwnedGun") then
-				tool.Equipped:Connect(function(mouse)
-					showAndSetupUi(tool)
-					setCursor(true)
-					local animator: Animator = character.Humanoid.Animator
-					fire = animator:LoadAnimation(tool.Animations.Fire)
-					equip = animator:LoadAnimation(tool.Animations.Equipt)
-					reload = animator:LoadAnimation(tool.Animations.Reload)
+		initializeGuns(Players.LocalPlayer.Character)
 
-					equip:Play()
+		Players.LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+			initializeGuns(Players.LocalPlayer.Character)
+		end)
+	end)
 
-					equip.Stopped:Connect(function()
-						equip:AdjustSpeed(0)
-						equip:AdjustWeight(1)
-						ContextActionService:BindAction("Reload", function(gpe)
-							if gpe and character:FindFirstChild(tool.Name) then
-								doReload(tool)
-							end
-						end, false, Enum.KeyCode.R)
-
-						ContextActionService:BindAction("Light", function(gpe)
-							if gpe and character:FindFirstChild(tool.Name) then
-								tool.Muzzle.Light.Enabled = not tool.Muzzle.Light.Enabled
-								return
-							end
-						end, false, Enum.KeyCode.F)
-
-						con1 = mouse.Button1Down:Connect(function()
-							if not reloading then
-								fire:Play()
-								GunRemote:FireServer("Fire", mouse.Hit.Position, tool)
-							end
-						end)
-
-						con2 = mouse.Button1Up:Connect(function()
-							GunRemote:FireServer("Stop", nil, tool)
-						end)
-
-						con3 = tool:GetAttributeChangedSignal("Ammo"):Connect(function()
-							updateUI(tool)
-						end)
-					end)
-				end)
-
-				tool.Unequipped:Connect(function()
-					equip:AdjustSpeed(1)
-					equip:AdjustWeight(0)
-					hideUI()
-					setCursor(false)
-					ContextActionService:UnbindAction("Reload")
-					ContextActionService:UnbindAction("Light")
-					GunRemote:FireServer("Stop", nil, tool)
-					con1:Disconnect()
-					con2:Disconnect()
-					con3:Disconnect()
-				end)
-			end
+	Players.LocalPlayer.CharacterRemoving:Connect(function(character)
+		for tool, bool in initializedGuns do
+			initializedGuns[tool] = nil
 		end
 	end)
 end
