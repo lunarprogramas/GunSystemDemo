@@ -1,3 +1,4 @@
+local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,7 +14,7 @@ local TweenUI = import("Shared/TweenUI")
 local GunRemote = Network.GetRemoteEvent("GunRE")
 local GunFunction: RemoteFunction = Network.GetRemoteFunction("GunRF")
 
-local reloading, fire, equip, reload, click
+local reloading, fire, equip, reload, click, firerateSwitch
 local UI
 local light = false
 
@@ -21,11 +22,25 @@ local connections = {}
 
 local initializedGuns = {}
 
-local cursor = "rbxassetid://16717300045"
+local defaultcursor = "rbxassetid://16717300045"
+local cursor = defaultcursor
 local clickSound = "rbxassetid://421058925"
+
+local switchFirerateSound = "rbxassetid://73801435898712"
+
+local firerate = "N/A"
+local canSwitchFirerate = false
+
+local firerates = {
+	[1] = "Automatic",
+	[2] = "Single",
+}
 
 local function showAndSetupUi(tool: Tool)
 	local gunDetails = GunFunction:InvokeServer("GetGunDetails", tool)
+
+	firerate = gunDetails.BurstType == "Automatic" and firerates[1] or firerates[2]
+	canSwitchFirerate = firerate == "Automatic" and true or false
 
 	UI = Players.LocalPlayer.PlayerGui:FindFirstChild("GunUI")
 
@@ -108,6 +123,38 @@ local function setLight(tool: Tool)
 	tool.Muzzle.Light.Enabled = light
 end
 
+local function indicateDamage(char: Model, damage: number)
+	local highlight: Highlight = ReplicatedStorage:FindFirstChild("DamageHighlight"):Clone()
+	local indicator: BillboardGui = ReplicatedStorage:FindFirstChild("DamageUI"):Clone()
+
+	local playerIndicator = Players.LocalPlayer.PlayerGui:FindFirstChild("DamageStats")
+	playerIndicator.Frame.Damage.Text = damage + tonumber(playerIndicator.Frame.Damage.Text)
+
+	if not highlight or not indicator then
+		return warn("unable to get requested assets")
+	end
+
+	highlight:AddTag("Damage")
+	indicator:AddTag("Damage")
+
+	if char:FindFirstChild("DamageUI") and char:FindFirstChild("DamageHighlight") then
+		indicator = char:FindFirstChild("DamageUI")
+		indicator.Number.Text = tonumber(indicator.Number.Text) + damage
+
+		highlight = char:FindFirstChild("DamageHighlight")
+		TweenUI:HighlightFade(highlight, 0.55, 0.8)
+		return
+	end
+
+	highlight.Parent = char
+
+	TweenUI:HighlightFade(highlight, 0.55, 0.8)
+
+	indicator.Parent = char
+	indicator.Adornee = char.HumanoidRootPart
+	indicator.Number.Text = damage
+end
+
 local function initializeGuns(character)
 	for _, tool: Tool in Players.LocalPlayer.Backpack:GetChildren() do
 		if tool:HasTag("OwnedGun") then
@@ -136,6 +183,21 @@ local function initializeGuns(character)
 								return
 							elseif input.KeyCode == Enum.KeyCode.R then
 								doReload(tool)
+							elseif input.KeyCode == Enum.KeyCode.V then
+								if canSwitchFirerate then
+									if not firerateSwitch then
+										firerateSwitch = Instance.new("Sound", tool.Muzzle)
+										firerateSwitch.Name = "ClickSound"
+										firerateSwitch.SoundId = switchFirerateSound
+									end
+
+									firerateSwitch:Play()
+									if firerate == "Automatic" then
+										firerate = "Single"
+									else
+										firerate = "Automatic"
+									end
+								end
 							end
 						end
 					end)
@@ -143,12 +205,24 @@ local function initializeGuns(character)
 					connections["Fire"] = mouse.Button1Down:Connect(function()
 						if not reloading then
 							fire:Play()
-							GunRemote:FireServer("Fire", mouse.Hit.Position, tool)
+							GunRemote:FireServer("Fire", mouse.Hit.Position, tool, firerate)
 						end
 					end)
 
 					connections["Stop"] = mouse.Button1Up:Connect(function()
 						GunRemote:FireServer("Stop", nil, tool)
+
+						task.delay(2.5, function()
+							for _, inst in CollectionService:GetTagged("Damage") do
+								if inst:IsA("Highlight") then
+									TweenUI:HighlightFade(inst, 1, 0.8)
+									task.wait(0.8)
+									inst:Destroy()
+								else
+									inst:Destroy()
+								end
+							end
+						end)
 					end)
 
 					connections["Ammo"] = tool:GetAttributeChangedSignal("Ammo"):Connect(function()
@@ -176,12 +250,20 @@ local function initializeGuns(character)
 	end
 end
 
+function public:ChangeCursor(img)
+	cursor = img == "0" and defaultcursor or ("rbxassetid://%s"):format(img)
+	warn("changed cursor to", img)
+end
+
 function public:Init()
-	GunFunction.OnClientInvoke = function(request)
+	GunFunction.OnClientInvoke = function(request, ...)
+		local args = { ... }
 		if request == "MouseLocation" then
 			return Players.LocalPlayer:GetMouse().Hit.Position
 		elseif request == "CameraLocation" then
 			return workspace.CurrentCamera.CFrame.Position
+		elseif request == "DamageIndicator" then
+			return indicateDamage(args[1], args[2])
 		end
 	end
 

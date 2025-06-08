@@ -162,16 +162,23 @@ function public:Init()
 		end)
 	end)
 
-	GunRemote.OnServerEvent:Connect(function(plr: Player, type, origin, tool)
+	GunRemote.OnServerEvent:Connect(function(plr: Player, type, origin, tool, firerate)
 		if type == "Fire" then
 			local gun = getGunFromTable(tool)
 			local bullet = ServerStorage.Guns:FindFirstChild("Bullet"):Clone()
+			local determinedFirerate = false
 
 			if not bullet then
 				return warn("bullet not found")
 			end
 
-			if gun.BurstType == "Single" then
+			if firerate == "Automatic" and gun.BurstType == "Automatic" then
+				determinedFirerate = "Automatic"
+			else
+				determinedFirerate = "Single"
+			end
+
+			if determinedFirerate == "Single" then
 				local ammo = tool:GetAttribute("Ammo")
 
 				if ammo > 0 then
@@ -192,7 +199,9 @@ function public:Init()
 							local player = Players:GetPlayerFromCharacter(hitPart.Parent)
 							local limbMultiplier = limbMap[hitPart] or 1
 							if player ~= plr then
-								hitPart.Parent.Humanoid.Health -= math.floor(gun.Damage * limbMultiplier)
+								local damage = math.floor(gun.Damage * limbMultiplier)
+								GunFunction:InvokeClient(plr, "DamageIndicator", hitPart.Parent, damage)
+								hitPart.Parent.Humanoid.Health -= damage
 							end
 						end
 					end
@@ -206,7 +215,7 @@ function public:Init()
 				else
 					tool.Muzzle.GunEmpty:Play()
 				end
-			elseif gun.BurstType == "Automatic" then
+			elseif determinedFirerate == "Automatic" then
 				public.Threads[plr] = task.spawn(function()
 					while tool:GetAttribute("Ammo") > 0 do
 						local ammo = tool:GetAttribute("Ammo")
@@ -229,7 +238,9 @@ function public:Init()
 								local player = Players:GetPlayerFromCharacter(hitPart.Parent)
 								local limbMultiplier = limbMap[hitPart.Name] or 1
 								if player ~= plr then
-									hitPart.Parent.Humanoid.Health -= math.floor(gun.Damage * limbMultiplier)
+									local damage = math.floor(gun.Damage * limbMultiplier)
+									GunFunction:InvokeClient(plr, "DamageIndicator", hitPart.Parent, damage)
+									hitPart.Parent.Humanoid.Health -= damage
 								end
 							end
 						end
