@@ -1,6 +1,8 @@
 local TweenUI = {}
 local TweenService = game:GetService("TweenService")
 
+-- made by @lunarprogramas (janslan)
+
 function TweenUI:TransparencyFade(ui: Frame, transparent: boolean, duration: number?, options: table?)
 	local tweenInfo = TweenInfo.new(duration or 0, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 0)
 

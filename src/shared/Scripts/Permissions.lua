@@ -1,4 +1,5 @@
 -- Permissions system
+-- made by @lunarprogramas (janslan)
 
 local Permissions = {}
 

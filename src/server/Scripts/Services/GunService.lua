@@ -38,6 +38,7 @@ local limbMap = {
 	RightFoot = 2,
 }
 
+-- made by @lunarprogramas (janslan)
 -- in an ideal world you would never use rcl :D
 -- and in an ideal word there are better practices and i dont declare myself as a god in programming this is just how I would approximately do if not a tad better on an actual project
 

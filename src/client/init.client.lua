@@ -2,6 +2,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Controllers = script.Scripts.Controllers
 local Modules = script.Scripts.Modules
 
+-- made by @lunarprogramas (janslan)
+
 local import = require(ReplicatedStorage.Shared.import)
 
 local function start()

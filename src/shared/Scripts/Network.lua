@@ -1,4 +1,5 @@
 -- Manager for all functions, events.
+-- made by @lunarprogramas (janslan)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")

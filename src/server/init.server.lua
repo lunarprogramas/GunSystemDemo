@@ -5,6 +5,8 @@ local Modules = script.Scripts.Modules
 local import = require(ReplicatedStorage.Shared.import)
 local con
 
+-- made by @lunarprogramas (janslan)
+
 local function start()
     import("set:Services", Services:GetChildren(), false)
     import("set:Modules", Modules:GetChildren(), false)

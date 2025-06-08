@@ -3,6 +3,8 @@ local public = {
 	Dummys = {},
 }
 
+-- made by @lunarprogramas (janslan)
+
 function public:Init()
     local function chain()
         for _, char: Model in CollectionService:GetTagged("Dummy") do

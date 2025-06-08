@@ -11,6 +11,8 @@ local Client = {
 }
 local Shared = {}
 
+-- made by @lunarprogramas (janslan)
+
 local function setAliases(modules, type, isShared: boolean?)
     if RunService:IsServer() and not isShared then
         Server[type] = modules

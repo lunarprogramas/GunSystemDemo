@@ -4,6 +4,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local public = {}
 
+-- made by @lunarprogramas (janslan)
+
 local import = require(ReplicatedStorage.Shared.import)
 local Network = import("Shared/Network")
 local TweenUI = import("Shared/TweenUI")
