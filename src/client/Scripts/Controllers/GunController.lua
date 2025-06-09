@@ -226,7 +226,7 @@ local function initializeGuns(character)
 								end
 							end
 							GunRemote:FireServer("Fire", mouse.Hit.Position, tool, firerate)
-							task.wait(gunDetails.RestTime or 0)
+							task.wait(firerate == "Single" and gunDetails.RestTime or 0)
 							fired = false
 						end
 					end)
