@@ -8,6 +8,8 @@ local DummyRF: RemoteFunction = Network.GetRemoteFunction("Dummy_RF")
 
 local command = {}
 
+-- made by @lunarprogramas (janslan)
+
 command = {
     Name = "dummy",
     Permissions = "All",

@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 
 local command = {}
 
+-- made by @lunarprogramas (janslan)
+
 command = {
     Name = "reset",
     Permissions = "All",

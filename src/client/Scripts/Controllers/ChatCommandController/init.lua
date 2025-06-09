@@ -6,6 +6,8 @@ public = {
 	Commands = {},
 }
 
+-- made by @lunarprogramas (janslan)
+
 local function getCommandFromMessage(msg)
     local split = string.split(msg, " ")
 	for name, cmd in public.Commands do

@@ -6,6 +6,8 @@ local GunController = import("Client/Controllers/GunController")
 
 local command = {}
 
+-- made by @lunarprogramas (janslan)
+
 command = {
     Name = "cursor",
     Permissions = "All",
