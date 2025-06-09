@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Controllers = script.Scripts.Controllers
 local Modules = script.Scripts.Modules
@@ -25,6 +26,7 @@ local function start()
 		end
 
         warn("started", ser.Name)
+		task.wait()
 	end
 
 	warn("starting Controllers")
@@ -39,6 +41,7 @@ local function start()
 		if not success then
 			warn(ser.Name, " - ", result)
 		end
+		task.wait()
 	end
 
 	workspace:SetAttribute("ClientDoneLoading", true)
