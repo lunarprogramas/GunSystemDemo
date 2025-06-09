@@ -136,6 +136,7 @@ function public:Init()
 					MaxAmmo = maxammo,
 					FireRate = firerate,
 					ReloadTime = reloadtime,
+					AnimationFireSpeed = config.AnimationFireSpeed -- only for primaries
 				}
 			elseif guntype == "Secondary" then
 				public.Secondaries[name] = {
@@ -147,6 +148,7 @@ function public:Init()
 					MaxAmmo = maxammo,
 					FireRate = firerate,
 					ReloadTime = reloadtime,
+					RestTime = config.RestTime -- only in secondaries
 				}
 			else
 				warn("gun type ", guntype, " was not recognized")

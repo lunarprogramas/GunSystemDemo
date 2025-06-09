@@ -14,11 +14,12 @@ local TweenUI = import("Shared/TweenUI")
 local GunRemote = Network.GetRemoteEvent("GunRE")
 local GunFunction: RemoteFunction = Network.GetRemoteFunction("GunRF")
 
-local reloading, fire, equip, reload, click, firerateSwitch
+local reloading, fire, equip, reload, click, firerateSwitch, fired, hasShownIndicator
 local UI
 local light = false
 
 local connections = {}
+local animationCache = {}
 
 local initializedGuns = {}
 
@@ -143,6 +144,7 @@ local function indicateDamage(char: Model, damage: number)
 
 		highlight = char:FindFirstChild("DamageHighlight")
 		TweenUI:HighlightFade(highlight, 0.55, 0.8)
+		TweenUI:TransparencyFade(indicator.Number, false, 0.8, { Do = "TextTransparency" })
 		return
 	end
 
@@ -153,6 +155,8 @@ local function indicateDamage(char: Model, damage: number)
 	indicator.Parent = char
 	indicator.Adornee = char.HumanoidRootPart
 	indicator.Number.Text = damage
+
+	TweenUI:TransparencyFade(indicator.Number, false, 0.8, { Do = "TextTransparency" })
 end
 
 local function initializeGuns(character)
@@ -170,10 +174,16 @@ local function initializeGuns(character)
 				equip = animator:LoadAnimation(tool.Animations.Equipt)
 				reload = animator:LoadAnimation(tool.Animations.Reload)
 
+				animationCache[#animationCache + 1] = equip
+				animationCache[#animationCache + 1] = fire
+				animationCache[#animationCache + 1] = reload
+
+				local gunDetails = GunFunction:InvokeServer("GetGunDetails", tool)
+
+				equip.Priority = Enum.AnimationPriority.Action
 				equip:Play()
 
-				equip.Stopped:Connect(function()
-					equip:AdjustSpeed(0)
+				connections["EquipConnection"] = equip.Stopped:Connect(function()
 					equip:AdjustWeight(1)
 
 					connections["Inputs"] = UserInputService.InputBegan:Connect(function(input, gpe)
@@ -203,26 +213,78 @@ local function initializeGuns(character)
 					end)
 
 					connections["Fire"] = mouse.Button1Down:Connect(function()
-						if not reloading then
-							fire:Play()
+						if not reloading and not fired then
+							fired = true
+							if not fire.IsPlaying then
+								if firerate == "Automatic" then
+									fire.Looped = true
+									fire:Play()
+									fire:AdjustSpeed(gunDetails.AnimationFireSpeed or 4)
+								else
+									fire.Looped = false
+									fire:Play()
+								end
+							end
 							GunRemote:FireServer("Fire", mouse.Hit.Position, tool, firerate)
+							task.wait(gunDetails.RestTime or 0)
+							fired = false
 						end
 					end)
 
 					connections["Stop"] = mouse.Button1Up:Connect(function()
 						GunRemote:FireServer("Stop", nil, tool)
 
-						task.delay(2.5, function()
-							for _, inst in CollectionService:GetTagged("Damage") do
-								if inst:IsA("Highlight") then
-									TweenUI:HighlightFade(inst, 1, 0.8)
-									task.wait(0.8)
-									inst:Destroy()
-								else
-									inst:Destroy()
+						if fire.IsPlaying then
+							fire.Looped = false
+							fire:Stop()
+						end
+
+						if not hasShownIndicator then
+							hasShownIndicator = task.delay(4, function()
+								for _, inst in CollectionService:GetTagged("Damage") do
+									if inst:IsA("Highlight") then
+										TweenUI:HighlightFade(inst, 1, 0.8)
+										task.wait(0.8)
+										inst:Destroy()
+									else
+										if inst:FindFirstChild("Number") then
+											TweenUI:TransparencyFade(
+												inst.Number,
+												true,
+												0.8,
+												{ Do = "TextTransparency" }
+											)
+											task.delay(0.8, function()
+												inst:Destroy()
+											end)
+										end
+									end
 								end
-							end
-						end)
+							end)
+						else
+							task.cancel(hasShownIndicator)
+							hasShownIndicator = task.delay(4, function()
+								for _, inst in CollectionService:GetTagged("Damage") do
+									if inst:IsA("Highlight") then
+										TweenUI:HighlightFade(inst, 1, 0.8)
+										task.wait(0.8)
+										inst:Destroy()
+									else
+										if inst:FindFirstChild("Number") then
+											TweenUI:TransparencyFade(
+												inst.Number,
+												true,
+												0.8,
+												{ Do = "TextTransparency" }
+											)
+											task.delay(0.8, function()
+												inst:Destroy()
+											end)
+										end
+									end
+								end
+							end)
+						end
 					end)
 
 					connections["Ammo"] = tool:GetAttributeChangedSignal("Ammo"):Connect(function()
@@ -232,17 +294,24 @@ local function initializeGuns(character)
 			end)
 
 			tool.Unequipped:Connect(function()
-				equip:AdjustSpeed(1)
-				equip:AdjustWeight(0)
+				for _, conn in connections do
+					conn:Disconnect()
+				end
+
+				for i, anim in animationCache do
+					anim:Stop()
+					anim:AdjustWeight(0)
+					animationCache[i] = nil
+				end
+
+				fire:Stop()
+				reload:Stop()
+
 				hideUI()
 				setCursor(false)
 				ContextActionService:UnbindAction("Reload")
 				ContextActionService:UnbindAction("Light")
 				GunRemote:FireServer("Stop", nil, tool)
-
-				for _, conn in connections do
-					conn:Disconnect()
-				end
 			end)
 
 			initializedGuns[tool] = true
