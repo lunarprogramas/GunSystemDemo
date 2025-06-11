@@ -159,166 +159,172 @@ local function indicateDamage(char: Model, damage: number)
 	TweenUI:TransparencyFade(indicator.Number, false, 0.8, { Do = "TextTransparency" })
 end
 
-local function initializeGuns(character)
-	for _, tool: Tool in Players.LocalPlayer.Backpack:GetChildren() do
-		if tool:HasTag("OwnedGun") then
-			if initializedGuns[tool] then
-				continue
-			end
+local function initializeGun(character, tool)
+	if tool:HasTag("OwnedGun") then
+		if initializedGuns[tool] then
+			return
+		end
 
-			warn("initialized", tool.Name)
+		warn("initialized", tool.Name)
 
-			tool.Equipped:Connect(function(mouse)
-				showAndSetupUi(tool)
-				setCursor(true)
-				local animator: Animator = character.Humanoid.Animator
-				fire = animator:LoadAnimation(tool.Animations.Fire)
-				equip = animator:LoadAnimation(tool.Animations.Equipt)
-				reload = animator:LoadAnimation(tool.Animations.Reload)
+		tool.Equipped:Connect(function(mouse)
+			showAndSetupUi(tool)
+			setCursor(true)
+			local animator: Animator = character.Humanoid.Animator
+			fire = animator:LoadAnimation(tool.Animations.Fire)
+			equip = animator:LoadAnimation(tool.Animations.Equipt)
+			reload = animator:LoadAnimation(tool.Animations.Reload)
 
-				animationCache[#animationCache + 1] = equip
-				animationCache[#animationCache + 1] = fire
-				animationCache[#animationCache + 1] = reload
+			animationCache[#animationCache + 1] = equip
+			animationCache[#animationCache + 1] = fire
+			animationCache[#animationCache + 1] = reload
 
-				local gunDetails = GunFunction:InvokeServer("GetGunDetails", tool)
+			local gunDetails = GunFunction:InvokeServer("GetGunDetails", tool)
 
-				equip.Priority = Enum.AnimationPriority.Action
-				equip:Play()
+			equip.Priority = Enum.AnimationPriority.Action
+			equip:Play()
 
-				connections["EquipConnection"] = equip.Stopped:Connect(function()
-					equip:AdjustWeight(1)
+			connections["EquipConnection"] = equip.Stopped:Connect(function()
+				equip:AdjustWeight(1)
 
-					connections["Inputs"] = UserInputService.InputBegan:Connect(function(input, gpe)
-						if not gpe and character:FindFirstChild(tool.Name) then
-							if input.KeyCode == Enum.KeyCode.F then
-								setLight(tool)
-								return
-							elseif input.KeyCode == Enum.KeyCode.R then
-								doReload(tool)
-							elseif input.KeyCode == Enum.KeyCode.V then
-								if canSwitchFirerate then
-									if not firerateSwitch then
-										firerateSwitch = Instance.new("Sound", tool.Muzzle)
-										firerateSwitch.Name = "ClickSound"
-										firerateSwitch.SoundId = switchFirerateSound
-									end
-
-									firerateSwitch:Play()
-									if firerate == "Automatic" then
-										firerate = "Single"
-									else
-										firerate = "Automatic"
-									end
+				connections["Inputs"] = UserInputService.InputBegan:Connect(function(input, gpe)
+					if not gpe and character:FindFirstChild(tool.Name) then
+						if input.KeyCode == Enum.KeyCode.F then
+							setLight(tool)
+							return
+						elseif input.KeyCode == Enum.KeyCode.R then
+							doReload(tool)
+						elseif input.KeyCode == Enum.KeyCode.V then
+							if canSwitchFirerate then
+								if not firerateSwitch then
+									firerateSwitch = Instance.new("Sound", tool.Muzzle)
+									firerateSwitch.Name = "ClickSound"
+									firerateSwitch.SoundId = switchFirerateSound
 								end
-							end
-						end
-					end)
 
-					connections["Fire"] = mouse.Button1Down:Connect(function()
-						if not reloading and not fired then
-							fired = true
-							if not fire.IsPlaying then
+								firerateSwitch:Play()
 								if firerate == "Automatic" then
-									fire.Looped = true
-									fire:Play()
-									fire:AdjustSpeed(gunDetails.AnimationFireSpeed or 4)
+									firerate = "Single"
 								else
-									fire.Looped = false
-									fire:Play()
+									firerate = "Automatic"
 								end
 							end
-							GunRemote:FireServer("Fire", mouse.Hit.Position, tool, firerate)
-							task.wait(firerate == "Single" and gunDetails.RestTime or 0)
-							fired = false
 						end
-					end)
+					end
+				end)
 
-					connections["Stop"] = mouse.Button1Up:Connect(function()
-						GunRemote:FireServer("Stop", nil, tool)
-
-						if fire.IsPlaying then
-							fire.Looped = false
-							fire:Stop()
+				connections["Fire"] = mouse.Button1Down:Connect(function()
+					if not reloading and not fired then
+						fired = true
+						if not fire.IsPlaying then
+							if firerate == "Automatic" then
+								fire.Looped = true
+								fire:Play()
+								fire:AdjustSpeed(gunDetails.AnimationFireSpeed or 4)
+							else
+								fire.Looped = false
+								fire:Play()
+							end
 						end
+						GunRemote:FireServer("Fire", mouse.Hit.Position, tool, firerate)
+						task.wait(firerate == "Single" and gunDetails.RestTime or 0)
+						fired = false
+					end
+				end)
 
-						if not hasShownIndicator then
-							hasShownIndicator = task.delay(4, function()
-								for _, inst in CollectionService:GetTagged("Damage") do
-									if inst:IsA("Highlight") then
-										TweenUI:HighlightFade(inst, 1, 0.8)
-										task.wait(0.8)
-										inst:Destroy()
-									else
-										if inst:FindFirstChild("Number") then
-											TweenUI:TransparencyFade(
-												inst.Number,
-												true,
-												0.8,
-												{ Do = "TextTransparency" }
-											)
-											task.delay(0.8, function()
-												inst:Destroy()
-											end)
-										end
+				connections["Stop"] = mouse.Button1Up:Connect(function()
+					GunRemote:FireServer("Stop", nil, tool)
+
+					if fire.IsPlaying then
+						fire.Looped = false
+						fire:Stop()
+					end
+
+					if not hasShownIndicator then
+						hasShownIndicator = task.delay(4, function()
+							for _, inst in CollectionService:GetTagged("Damage") do
+								if inst:IsA("Highlight") then
+									TweenUI:HighlightFade(inst, 1, 0.8)
+									task.wait(0.8)
+									inst:Destroy()
+								else
+									if inst:FindFirstChild("Number") then
+										TweenUI:TransparencyFade(inst.Number, true, 0.8, { Do = "TextTransparency" })
+										task.delay(0.8, function()
+											inst:Destroy()
+										end)
 									end
 								end
-							end)
-						else
-							task.cancel(hasShownIndicator)
-							hasShownIndicator = task.delay(4, function()
-								for _, inst in CollectionService:GetTagged("Damage") do
-									if inst:IsA("Highlight") then
-										TweenUI:HighlightFade(inst, 1, 0.8)
-										task.wait(0.8)
-										inst:Destroy()
-									else
-										if inst:FindFirstChild("Number") then
-											TweenUI:TransparencyFade(
-												inst.Number,
-												true,
-												0.8,
-												{ Do = "TextTransparency" }
-											)
-											task.delay(0.8, function()
-												inst:Destroy()
-											end)
-										end
+							end
+						end)
+					else
+						task.cancel(hasShownIndicator)
+						hasShownIndicator = task.delay(4, function()
+							for _, inst in CollectionService:GetTagged("Damage") do
+								if inst:IsA("Highlight") then
+									TweenUI:HighlightFade(inst, 1, 0.8)
+									task.wait(0.8)
+									inst:Destroy()
+								else
+									if inst:FindFirstChild("Number") then
+										TweenUI:TransparencyFade(inst.Number, true, 0.8, { Do = "TextTransparency" })
+										task.delay(0.8, function()
+											inst:Destroy()
+										end)
 									end
 								end
-							end)
-						end
-					end)
+							end
+						end)
+					end
+				end)
 
-					connections["Ammo"] = tool:GetAttributeChangedSignal("Ammo"):Connect(function()
-						updateUI(tool)
-					end)
+				connections["Ammo"] = tool:GetAttributeChangedSignal("Ammo"):Connect(function()
+					updateUI(tool)
 				end)
 			end)
+		end)
 
-			tool.Unequipped:Connect(function()
-				for _, conn in connections do
-					conn:Disconnect()
-				end
+		tool.Unequipped:Connect(function()
+			for _, conn in connections do
+				conn:Disconnect()
+			end
 
-				for i, anim in animationCache do
-					anim:Stop()
-					anim:AdjustWeight(0)
-					animationCache[i] = nil
-				end
+			for i, anim in animationCache do
+				anim:Stop()
+				anim:AdjustWeight(0)
+				animationCache[i] = nil
+			end
 
-				fire:Stop()
-				reload:Stop()
+			fire:Stop()
+			reload:Stop()
 
-				hideUI()
-				setCursor(false)
-				ContextActionService:UnbindAction("Reload")
-				ContextActionService:UnbindAction("Light")
-				GunRemote:FireServer("Stop", nil, tool)
-			end)
+			hideUI()
+			setCursor(false)
+			ContextActionService:UnbindAction("Reload")
+			ContextActionService:UnbindAction("Light")
+			GunRemote:FireServer("Stop", nil, tool)
+		end)
 
-			initializedGuns[tool] = true
-		end
+		initializedGuns[tool] = true
 	end
+end
+
+local function setupCharacter(plr: Player)
+	-- Setup the backpack items
+	for _, tool in plr.Backpack:GetChildren() do
+		initializeGun(plr.Character, tool)
+	end
+
+	-- Setup the connection
+	plr.CharacterAdded:Connect(function(character)
+		for _, tool in plr.Backpack:GetChildren() do
+			initializeGun(plr.Character, tool)
+		end
+	end)
+
+	plr.Backpack.ChildAdded:Connect(function(child)
+		initializeGun(plr.Character, child)
+	end)
 end
 
 function public:ChangeCursor(img)
@@ -338,19 +344,7 @@ function public:Init()
 		end
 	end
 
-	Players.LocalPlayer.CharacterAdded:Connect(function(character)
-		initializeGuns(Players.LocalPlayer.Character)
-
-		Players.LocalPlayer.Backpack.ChildAdded:Connect(function(child)
-			initializeGuns(Players.LocalPlayer.Character)
-		end)
-	end)
-
-	Players.LocalPlayer.CharacterRemoving:Connect(function(character)
-		for tool, bool in initializedGuns do
-			initializedGuns[tool] = nil
-		end
-	end)
+	setupCharacter(Players.LocalPlayer)
 end
 
 function public:Start() end

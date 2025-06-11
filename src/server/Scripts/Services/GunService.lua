@@ -134,7 +134,7 @@ function public:Init()
 					MaxAmmo = maxammo,
 					FireRate = firerate,
 					ReloadTime = reloadtime,
-					AnimationFireSpeed = config.AnimationFireSpeed -- only for primaries
+					AnimationFireSpeed = config.AnimationFireSpeed
 				}
 			elseif guntype == "Secondary" then
 				public.Secondaries[name] = {
@@ -146,7 +146,8 @@ function public:Init()
 					MaxAmmo = maxammo,
 					FireRate = firerate,
 					ReloadTime = reloadtime,
-					RestTime = config.RestTime -- only in secondaries
+					RestTime = config.RestTime, -- only in secondaries
+					AnimationFireSpeed = config.AnimationFireSpeed
 				}
 			else
 				warn("gun type ", guntype, " was not recognized")
@@ -220,7 +221,6 @@ function public:Init()
 				public.Threads[plr] = task.spawn(function()
 					while tool:GetAttribute("Ammo") > 0 do
 						local ammo = tool:GetAttribute("Ammo")
-						task.wait(gun.FireRate)
 
 						local mousePosition = GunFunction:InvokeClient(plr, "MouseLocation")
 						local cameraPosition = GunFunction:InvokeClient(plr, "CameraLocation")
@@ -252,6 +252,7 @@ function public:Init()
 						task.delay(0.4, function()
 							tool.Muzzle.Flash.Enabled = false
 						end)
+						task.wait(gun.FireRate)
 					end
 
 					if tool:GetAttribute("Ammo") == 0 then
