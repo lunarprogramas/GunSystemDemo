@@ -15,8 +15,6 @@ local GunFunction: RemoteFunction = Network.GetRemoteFunction("GunRF")
 public = {
 	Primaries = {},
 	Secondaries = {},
-	Debounces = {},
-	CeaseFires = {},
 	Threads = {},
 }
 
