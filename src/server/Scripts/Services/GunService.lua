@@ -150,6 +150,7 @@ function public:Init()
 				}
 			else
 				warn("gun type ", guntype, " was not recognized")
+				continue
 			end
 
 			warn("initialized gun ", name)
