@@ -184,7 +184,6 @@ function public:Init()
 				local ammo = tool:GetAttribute("Ammo")
 
 				if ammo > 0 then
-					tool:SetAttribute("Ammo", ammo - 1)
 					local mousePosition = GunFunction:InvokeClient(plr, "MouseLocation")
 					local cameraPosition = GunFunction:InvokeClient(plr, "CameraLocation")
 					local direction = (mousePosition - cameraPosition).Unit * 500 -- 500 studs range, adjust as needed
@@ -211,6 +210,7 @@ function public:Init()
 					tool.Muzzle.Flash.Enabled = true
 					tool.Muzzle.LightEffect:Emit(1)
 					tool.Muzzle.Audio:Play()
+					tool:SetAttribute("Ammo", ammo - 1)
 					task.delay(0.4, function()
 						tool.Muzzle.Flash.Enabled = false
 					end)
@@ -223,7 +223,6 @@ function public:Init()
 						local ammo = tool:GetAttribute("Ammo")
 						task.wait(gun.FireRate)
 
-						tool:SetAttribute("Ammo", ammo - 1)
 						local mousePosition = GunFunction:InvokeClient(plr, "MouseLocation")
 						local cameraPosition = GunFunction:InvokeClient(plr, "CameraLocation")
 						local direction = (mousePosition - cameraPosition).Unit * 500 -- 500 studs range, adjust as needed
@@ -250,6 +249,7 @@ function public:Init()
 						tool.Muzzle.Flash.Enabled = true
 						tool.Muzzle.LightEffect:Emit(1)
 						tool.Muzzle.Audio:Play()
+						tool:SetAttribute("Ammo", ammo - 1)
 						task.delay(0.4, function()
 							tool.Muzzle.Flash.Enabled = false
 						end)

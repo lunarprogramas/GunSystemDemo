@@ -166,6 +166,8 @@ local function initializeGuns(character)
 				continue
 			end
 
+			warn("initialized", tool.Name)
+
 			tool.Equipped:Connect(function(mouse)
 				showAndSetupUi(tool)
 				setCursor(true)
