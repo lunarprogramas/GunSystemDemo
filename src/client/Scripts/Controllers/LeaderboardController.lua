@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local Teams = game:GetService("Teams")
+local UserInputService = game:GetService("UserInputService")
 
 local Controller = {}
 
@@ -113,6 +114,9 @@ local function updateLeaderboard()
 		end
 	end
 
+	-- sort the table alpabetically
+	table.sort(List)
+
 	-- once the List has been organised then we will display it
 	for name, team in List do
 		local hidden = Teams[name]:GetAttribute("Hidden")
@@ -160,6 +164,14 @@ function Controller:Init()
 	end
 
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+		if not gameProcessedEvent then
+			if input.KeyCode == Enum.KeyCode.Tab then
+				UI.Parent.Enabled = not UI.Parent.Enabled
+			end
+		end
+	end)
 end
 
 function Controller:Start()
