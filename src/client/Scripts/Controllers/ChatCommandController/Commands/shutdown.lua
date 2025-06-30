@@ -12,7 +12,7 @@ local command = {}
 command = {
     Name = "shutdown",
     Permissions = {"User:294406038"},
-    RawCommand = "!!!!shutdown"
+    RawCommand = "/shutdown"
 }
 
 function command:Execute()

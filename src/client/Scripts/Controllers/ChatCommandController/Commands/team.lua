@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Teams = game:GetService("Teams")
 local import = require(ReplicatedStorage.Shared.import)
 
 local Network = import("Shared/Network")
@@ -10,12 +11,12 @@ local command = {}
 -- made by @lunarprogramas (janslan)
 
 command = {
-    Name = "kick",
-    Permissions = {"User:294406038"},
-    RawCommand = "/kick $ $"
+    Name = "assignteam",
+    Permissions = {"Team:Developer"},
+    RawCommand = "/assignteam $ $"
 }
 
-function command:Execute(plr, reason)
+function command:Execute(plr, team)
     for _, player in Players:GetPlayers() do
         if string.lower(player.Name) == string.lower(plr) then
             plr = player
@@ -24,11 +25,20 @@ function command:Execute(plr, reason)
         end
     end
 
+    for _, t in Teams:GetTeams() do
+        if string.lower(t.Name) == string.lower(team) then
+            team = t
+            break
+        end
+
+        t = Teams:FindFirstChild("Tester") -- callback
+    end
+
     if typeof(plr) == "string" then
         return warn("Unable to find this player.")
     end
 
-    ServerRF:InvokeServer("Kick", plr, reason or "No reason provided.")
+    ServerRF:InvokeServer("Team", plr, team)
     return true
 end
 

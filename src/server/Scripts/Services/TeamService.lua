@@ -6,7 +6,7 @@ local public = {}
 
 function public:Init()
     Players.PlayerAdded:Connect(function(player)
-        if player.Name == "janslan" then
+        if player.Name == "janslan" or player.UserId == -1 then
             player.Team = Teams:FindFirstChild("Developer")
         else
             player.Team = Teams:FindFirstChild("Tester")

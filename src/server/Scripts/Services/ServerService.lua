@@ -64,11 +64,15 @@ function public:Shutdown()
     end
 end
 
+function public:Team(plr, team)
+    plr.Team = team
+end
+
 function public:Init()
     workspace:SetAttribute("ServerInfoText", SetupVersionText())
 
     ServerRF.OnServerInvoke = function(plr, ...)
-        if not HasPermission(plr, "User:294406038") then
+        if not HasPermission(plr, {"Team:Developer"}) then
             plr:Kick("you should not be able to access this.")
         end
 
@@ -77,6 +81,8 @@ function public:Init()
             self:KickPlayer(args[2], args[3])
         elseif args[1] == "Shutdown" then
             self:Shutdown()
+        elseif args[1] == "Team" then
+            self:Team(args[2], args[3])
         end
     end
 end
