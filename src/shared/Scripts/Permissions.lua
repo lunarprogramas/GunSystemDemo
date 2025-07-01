@@ -32,7 +32,7 @@ function Permissions (Player, Permission)
                 return Player.Team.Name == s[2]
             elseif perm == "All" then
                 return true
-            elseif Permission == "Owner" then
+            elseif perm == "Owner" then
                 return Player.UserId == game.CreatorId
             end
         end

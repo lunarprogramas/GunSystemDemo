@@ -14,6 +14,7 @@ local Player = Players.LocalPlayer
 
 local TeamIcons = {
 	["Developer"] = "rbxassetid://17399844238",
+	["Administrator"] = "rbxassetid://17401665157"
 }
 
 local PlayerIcons = {
@@ -24,15 +25,16 @@ local PlayerIcons = {
 }
 
 local HiddenPermissions = {
-	"Team:Developer",
+	"Owner",
 }
 
-local ViewPermissions = { "Team:Developer" }
+local ViewPermissions = { "Owner" }
 
 local List = {}
 local connections = {}
 local attemptedToView = {}
 local viewing
+local viewingPlayer
 local leaderboardState = true
 
 local function getRank(plr: Player)
@@ -44,35 +46,41 @@ local function getRank(plr: Player)
 end
 
 local function viewPlayer(plr: Player, button: TextButton)
-	if not HasPermission(Player, ViewPermissions) then return end
-    if plr == Player then
-        workspace.CurrentCamera.CameraSubject = Player.Character.Humanoid
-        viewing = false
-        button.TextLabel.Text = getRank(plr)
-        return
-    end
-    
-    if not attemptedToView[plr] then
-        attemptedToView[plr] = true
-        button.TextLabel.Text = getRank(plr) .. " [PRESS ONCE MORE TO VIEW]"
+	if not HasPermission(Player, ViewPermissions) then
+		return
+	end
+	if plr == Player and viewing then
+		workspace.CurrentCamera.CameraSubject = Player.Character.Humanoid
+		viewing.TextLabel.Text = getRank(viewingPlayer)
+		viewing = false
+		viewingPlayer = false
+		return
+	end
 
-        connections["delay"] = task.delay(5, function()
-            attemptedToView[plr] = false
-            button.Text = getRank(plr)
-        end)
-    else
-        if viewing then
-            warn(1)
-            workspace.CurrentCamera.CameraSubject = Player.Character.Humanoid
-            viewing = false
-        end
+	if not attemptedToView[plr] and not viewing then
+		attemptedToView[plr] = true
+		button.TextLabel.Text = getRank(plr) .. " [PRESS ONCE MORE TO VIEW/UNVIEW]"
 
-        attemptedToView[plr] = nil
-        button.TextLabel.Text = getRank(plr) .. " [VIEWING]"
-        task.cancel(connections["delay"])
-        workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
-        viewing = true
-    end
+		connections["delay"] = task.delay(5, function()
+			attemptedToView[plr] = false
+			button.TextLabel.Text = getRank(plr)
+		end)
+	else
+		if viewing then
+			workspace.CurrentCamera.CameraSubject = Player.Character.Humanoid
+			viewing = false
+			viewingPlayer = false
+			button.TextLabel.Text = getRank(plr)
+			return
+		end
+
+		attemptedToView[plr] = nil
+		button.TextLabel.Text = getRank(plr) .. " [VIEWING]"
+		task.cancel(connections["delay"])
+		workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
+		viewing = button
+		viewingPlayer = plr
+	end
 end
 
 local function updateLeaderboard()
@@ -80,13 +88,6 @@ local function updateLeaderboard()
 
 	-- clear current values
 	List = {}
-    for _, con in connections do
-        if type(con) == "function" then
-            con:Disconnect()
-        elseif type(con) == "thread" then
-            task.cancel(con)
-        end
-    end
 
 	for _, ui in UI:GetChildren() do
 		if ui:IsA("Frame") or ui:IsA("TextButton") then
@@ -95,17 +96,19 @@ local function updateLeaderboard()
 	end
 
 	for _, plr: Player in Players:GetPlayers() do
-        if not plr or not plr.Team then continue end
+		for _, team in Teams:GetTeams() do
+			if not List[team.Name] then
+				List[team.Name] = {}
+			end
 
-		if not List[plr.Team.Name] then
-			List[plr.Team.Name] = {}
+			if not List[team.Name].Players then
+				List[team.Name].Players = {}
+			end
+
+			if plr and plr.Team and plr.Team == team then
+				table.insert(List[plr.Team.Name].Players, { player = plr })
+			end
 		end
-
-        if not List[plr.Team.Name].Players then
-            List[plr.Team.Name].Players = {}
-        end
-
-		table.insert(List[plr.Team.Name].Players, { player = plr })
 	end
 
 	-- setup the layout order
@@ -126,12 +129,19 @@ local function updateLeaderboard()
 	end
 
 	-- sort the table alpabetically
+	-- sorts the team names
 	table.sort(List)
+
+	for _, team in List do -- sort players
+		table.sort(team.Players, function(a, b)
+			return a.player.Name:lower() < b.player.Name:lower()
+		end)
+	end
 
 	-- once the List has been organised then we will display it
 	for name, team in List do
 		local hidden = Teams[name]:GetAttribute("Hidden")
-		
+
 		if not leaderboardState then
 			leaderboardState = true
 			UI.Parent.Enabled = true
@@ -171,9 +181,9 @@ local function updateLeaderboard()
 					plrUI.PlayerIcon.Image = hasPlayerIcon
 				end
 				plrUI.Visible = true
-                connections[plr.player.Name] = plrUI.MouseButton1Click:Connect(function()
-                    viewPlayer(plr.player, plrUI)
-                end)
+				connections[plr.player.Name] = plrUI.MouseButton1Click:Connect(function()
+					viewPlayer(plr.player, plrUI)
+				end)
 			end
 		end
 	end
@@ -221,8 +231,18 @@ function Controller:Init()
 end
 
 function Controller:Start()
-	Players.PlayerAdded:Connect(updateLeaderboard)
-	Players.PlayerRemoving:Connect(updateLeaderboard)
+	Players.PlayerAdded:Connect(function(player)
+		updateLeaderboard()
+		connections[("teamchange_%s"):format(player.UserId)] = player:GetPropertyChangedSignal("Team"):Connect(function()
+			updateLeaderboard()
+		end)
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		updateLeaderboard()
+		connections[("teamchange_%s"):format(player.UserId)]:Disconnect()
+		connections[("teamchange_%s"):format(player.UserId)] = nil
+	end)
+
 	Player:GetPropertyChangedSignal("Team"):Connect(updateLeaderboard)
 	updateLeaderboard()
 end
