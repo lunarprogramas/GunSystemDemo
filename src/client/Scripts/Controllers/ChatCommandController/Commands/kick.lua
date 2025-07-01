@@ -11,7 +11,7 @@ local command = {}
 
 command = {
     Name = "kick",
-    Permissions = {"User:294406038"},
+    Permissions = "Owner",
     RawCommand = "/kick $ $"
 }
 

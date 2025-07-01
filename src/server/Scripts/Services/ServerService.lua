@@ -72,7 +72,7 @@ function public:Init()
     workspace:SetAttribute("ServerInfoText", SetupVersionText())
 
     ServerRF.OnServerInvoke = function(plr, ...)
-        if not HasPermission(plr, {"Team:Developer"}) then
+        if not HasPermission(plr, "Owner") then
             plr:Kick("you should not be able to access this.")
         end
 

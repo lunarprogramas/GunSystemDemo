@@ -12,7 +12,7 @@ local command = {}
 
 command = {
     Name = "assignteam",
-    Permissions = {"Team:Developer"},
+    Permissions = "Owner",
     RawCommand = "/assignteam $ $"
 }
 

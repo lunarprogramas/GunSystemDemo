@@ -131,6 +131,11 @@ local function updateLeaderboard()
 	-- once the List has been organised then we will display it
 	for name, team in List do
 		local hidden = Teams[name]:GetAttribute("Hidden")
+		
+		if not leaderboardState then
+			leaderboardState = true
+			UI.Parent.Enabled = true
+		end
 
 		if (hidden and HasPermission(Player, HiddenPermissions)) or not hidden then
 			local hasTeamIcon = TeamIcons[name] and true or false
@@ -171,6 +176,19 @@ local function updateLeaderboard()
                 end)
 			end
 		end
+	end
+
+	-- hide the leaderboard if nothing is there
+	local count = 0
+	for _, ui in UI:GetChildren() do
+		if ui:IsA("Frame") or ui:IsA("TextButton") then
+			count = count + 1
+		end
+	end
+
+	if count == 0 then
+		leaderboardState = false
+		UI.Parent.Enabled = false
 	end
 end
 

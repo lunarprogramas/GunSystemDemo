@@ -11,7 +11,7 @@ local command = {}
 
 command = {
     Name = "shutdown",
-    Permissions = {"User:294406038"},
+    Permissions = "Owner",
     RawCommand = "/shutdown"
 }
 
