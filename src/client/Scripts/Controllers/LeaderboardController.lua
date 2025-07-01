@@ -16,34 +16,45 @@ local TeamIcons = {
 	["Developer"] = "rbxassetid://17399844238",
 }
 
+local PlayerIcons = {
+	-- ["Developer"] = {
+	-- 	Permissions = "Owner",
+	-- 	Icon = "rbxassetid://17399844238"
+	-- }
+}
+
 local HiddenPermissions = {
 	"Team:Developer",
 }
+
+local ViewPermissions = { "Team:Developer" }
 
 local List = {}
 local connections = {}
 local attemptedToView = {}
 local viewing
+local leaderboardState = true
 
 local function getRank(plr: Player)
 	if plr.UserId == game.CreatorId then
-		return `<b><font color="rgb(255,255,0)">{string.upper(plr.Name)}</font></b>`
+		return `<b><font color="rgb(255,255,0)">{string.upper(plr.Name)}</font> (OWNER)</b>`
 	else
 		return `<b>{string.upper(plr.Name)}</b>`
 	end
 end
 
 local function viewPlayer(plr: Player, button: TextButton)
+	if not HasPermission(Player, ViewPermissions) then return end
     if plr == Player then
         workspace.CurrentCamera.CameraSubject = Player.Character.Humanoid
         viewing = false
-        button.Text = getRank(plr)
+        button.TextLabel.Text = getRank(plr)
         return
     end
     
     if not attemptedToView[plr] then
         attemptedToView[plr] = true
-        button.Text = getRank(plr) .. " [PRESS ONCE MORE TO VIEW]"
+        button.TextLabel.Text = getRank(plr) .. " [PRESS ONCE MORE TO VIEW]"
 
         connections["delay"] = task.delay(5, function()
             attemptedToView[plr] = false
@@ -57,7 +68,7 @@ local function viewPlayer(plr: Player, button: TextButton)
         end
 
         attemptedToView[plr] = nil
-        button.Text = getRank(plr) .. " [VIEWING]"
+        button.TextLabel.Text = getRank(plr) .. " [VIEWING]"
         task.cancel(connections["delay"])
         workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
         viewing = true
@@ -138,11 +149,22 @@ local function updateLeaderboard()
 			teamUI.Visible = true
 
 			for _, plr in team.Players do
+				local hasPlayerIcon = false
+				for _, icon in PlayerIcons do
+					if HasPermission(Player, icon.Permissions) then
+						hasPlayerIcon = icon.Icon
+					end
+				end
+
 				local plrUI: TextButton = UI.Template.Player:Clone()
 				plrUI.Parent = UI
 				plrUI.Name = plr.player.Name
-				plrUI.Text = getRank(plr.player)
+				plrUI.TextLabel.Text = getRank(plr.player)
 				plrUI.LayoutOrder = plr._playerIndex
+				if hasPlayerIcon then
+					plrUI.PlayerIcon.Visible = true
+					plrUI.PlayerIcon.Image = hasPlayerIcon
+				end
 				plrUI.Visible = true
                 connections[plr.player.Name] = plrUI.MouseButton1Click:Connect(function()
                     viewPlayer(plr.player, plrUI)
@@ -150,6 +172,12 @@ local function updateLeaderboard()
 			end
 		end
 	end
+end
+
+function Controller:SetLeaderboard()
+	leaderboardState = not leaderboardState
+	UI.Parent.Enabled = leaderboardState
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, not leaderboardState)
 end
 
 function Controller:Init()
@@ -167,7 +195,7 @@ function Controller:Init()
 
 	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
 		if not gameProcessedEvent then
-			if input.KeyCode == Enum.KeyCode.Tab then
+			if input.KeyCode == Enum.KeyCode.Tab and leaderboardState then
 				UI.Parent.Enabled = not UI.Parent.Enabled
 			end
 		end

@@ -16,6 +16,8 @@ function Permissions (Player, Permission)
             return Player.Team.Name == s[2]
         elseif Permission == "All" then
             return true
+        elseif Permission == "Owner" then
+            return Player.UserId == game.CreatorId
         end
     else
         for _, perm in Permission do
@@ -30,6 +32,8 @@ function Permissions (Player, Permission)
                 return Player.Team.Name == s[2]
             elseif perm == "All" then
                 return true
+            elseif Permission == "Owner" then
+                return Player.UserId == game.CreatorId
             end
         end
     end
